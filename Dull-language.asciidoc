@@ -1,0 +1,364 @@
+Dull Language Specification -- draft v2
+=======================================
+
+This is the specification for the esoteric programming language "Dull",
+which is based on the concept of encoding a program as
+_spelling errors in a text_.
+
+Synopsis
+--------
+
+The following is a Dull program which prints a lower-case letter "x":
+
+..........
+    All workh and no play makoes Jakc a dull boy!
+..........
+
+Machine architecture
+--------------------
+
+Dull operates on a stack machine. Besides the _data stack_, the machine
+has two registers: the _global context register_ and the _local
+context register_, and a _local context stack_.
+
+Furthermore, the instruction pointer consists of two parts: a program
+source location, and a location in the reference string (see below).
+
+There are three data types:
+
+. integer
+. reference to array
+. return address
+
+Additionally, the stack may contain a special "marker" value.
+
+=== Initial state
+
+The data stack and local context stacks are initially empty.
+The local and global context registers initially
+contain references to separate arrays, each of length zero.
+
+The instruction pointer points initially to the beginning of the
+program source and of the reference text.
+
+Source code
+-----------
+
+Programs in Dull are encoded as mutations of a fixed reference
+text.
+
+The reference text is
+
+..........
+    All work and no play makes Jack a dull boy
+..........
+(43 characters in total: 42 characters plus the terminating newline.)
+
+The reference text is repeated as many times as needed.
+
+=== Labels
+
+Each line consists of a label part and an instruction part.
+
+The label is a prefix of the line.
+The prefix stops just before the first mutation, the first word
+not containing any upper-case letters, or the end of the
+line, whichever comes first.
+
+The rest of the line (including the initial space, if present) is the
+instruction part.
+
+For instance, the two lines
+
+..........
+    All Work and no play makes Jack a dull boy
+    ALL Workand no play makes Jack a dull boy
+..........
+have the label parts `All Work` and `ALL Work`, respectively, which
+are distinct.
+
+Some lines are labelled: If the rest of the line begins with a
+punctuation mark, then the line is _labeled_, and its label is its
+label part.
+
+For instance, the two lines
+..........
+    All Work and no play makes Jack a dull boy
+    All Work! and no play! makes Jack a dull boy
+..........
+have identical label parts (`All Work`), but only the latter is labeled.
+
+Label parts which consists of all 10 words are reserved.
+They can not be used for labelling or for branching, but are used for
+calling library functions.
+
+=== Mutations
+
+A program text can contain the following kinds of mutations:
+
+* Doubled character (e.g. "play" -> "pllay")
+* Transposed characters (e.g. "play" -> "paly")
+* Replaced character (e.g. "play" -> "pway")
+* Deleted character (e.g. "play" -> "ply")
+* Inserted character (e.g. "play" -> "polay")
+
+Given the program text `prg`, the reference text `ref`, the program
+text position `i` and the reference text position `j`, the mutation
+decoding algorithm is as follows:
+
+* Is `prg[i]==ref[j]`? Then:
+** Is `prg[i+1]==ref[j]`, and `prg[i+1]<>ref[j+1]`?
+*** Then _Doubled character` (and `i+=2; j+=1`).
+*** Else _Unchanged character_ (and `i+=1; j+=1`).
+* Else: Is `prg[i]==ref[j+1]` and prg[i+1]==ref[j]`?
+** Then _Transposed character_ (and `i+=2; j+=2`).
+* Else: Is `prg[i+1]==ref[j+1]`?
+** Then _Replaced character_ (and `i+=1; j+=1`).
+* Else: Is `prg[i]==ref[j+1]`?
+** Then _Deleted character_ (and `j+=1`).
+* Else: Is `ref[j] = newline`?
+** Then _Inserted character at end of line_ (and `i+=1`).
+* Else: Is `prg[i+1]==ref[j]`, or `prg[i] not a letter or space`?
+** Then _Inserted character_ (and `i+=1`).
+* Else: Syntax error.
+
+=== Instructions
+
+The instructions and their encoding as mutations are as follows;
+the detailed meaning of each instruction is described in a subsequent section.
+
+Unchanged letter::
+  No operation.
+
+Doubled letter::
+  Duplicate top.
+
+Inserted punctuation mark at end of line::
+  I/O and control flow, depending on the punctuation mark:
++
+--
+  Question mark, "`?`":: Input.
+  Exclamation mark, "`!`":: Output.
+  Full stop, "`.`":: Conditional forward branch.
+  Comma, "`,`":: Conditional backward branch.
+  Colon, "`:`":: Forward branch.
+  Semicolon, "`;`":: Backward branch.
+  Ellipsis, "`...`":: Return (if label part=="") or Procedure call (otherwise).
+--
+
+Two letters transposed::
+  Arithmetic, depending on the two original letters:
++
+--
+  a consonant followed by a vowel:: Add.
+  a vowel followed by a consonant:: Subtract.
+  two consonants:: Multiply.
+  two vowels:: Divide.
+--
+
+A letter and a space transposed::
+  Context access, depending on the two original characters:
++
+--
+  a space followed by a consonant:: Push local context.
+  a space followed by a vowel:: Push global context.
+  a consonant followed by a space:: Enter scope.
+  a vowel followed by a space:: Exit scope.
+--
+
+A deleted character::
+  Depending on the character:
++
+--
+  a consonant:: Pop.
+  a vowel:: Swap.
+  a space:: Construct array.
+--
+
+An inserted character::
+   Depending on the inserted character:
++
+--
+  An inserted space::
+    Push marker.
+
+  An inserted lower-case letter::
+    Push integer. The integer is the letter value (1-26) of the letter.
+
+  An inserted apostrophe::
+    Debug dump.
+
+  An inserted punctuation mark::
+    No operation; serves as part of the labelling mechanism.
+--
+
+A replaced letter (QWERTY neigbour, lower-case)::
+  Depending on which of the original letter's neighbours:
++
+--
+  Neighbour to the left:: Array write.
+  Neighbour to the right:: Array read.
+  Neighbour to the up-and-right:: Get array size.
+  Neighbour to the up-and-left:: Set array size.
+  Neighbour to the down-and-left:: Array range copy.
+  Neighbour to the down-and-right:: (Unused).
+--
+
+Premature end of text::
+  Program termination.
+
+The items apply in order: if two or more cases are applicable, only
+the one occuring first in the above list applies.
+
+Note that `y` is considered a vowel; that is, the set of vowels is
+defined as "`aeiouy`". Furthermore, the set of punctuation marks is
+defined as "`.,:;?!`".
+
+Instruction semantics
+---------------------
+
+=== Stack operations
+
+Push integer (_v_):: `(...) -> (... v)`
+Push marker:: `(...) -> (... <marker>)`
+Pop:: `(... x) -> (...)`
+Duplicate top:: `(... x) -> (... x x)`
+Swap:: `(... x y) -> (... y x)`
+
+=== Arithmetic
+Add:: `(... a b) -> (... (a+b))`
+Subtract:: `(... a b) -> (... (a-b))`
+Multiply:: `(... a b) -> (... (a*b))`
+Divide:: `(... a b) -> (... (q r))`
+         where `q` is the quotient and `r` the remainder of the division `a/b`.
+
+=== Input and output
+Input:: `(... count) -> (input)`
++
+--
+_count_ must be an integer. +
+_input_ is a string: an array of integers, each representing a character read
+ from standard input.
+
+If _count_ is a positive integer, that many characters are read (or less, if stdin is at EOF). +
+If _count_ is zero, input is read until end-of-line. +
+If _count_ is a negative integer, a non-blocking read is performed: up to _-count_ characters are attempted read, but less may be available.
+--
+
+Output:: `(... string) -> ()`
++
+--
+_string_ must be an I/O-list: an integer or an array of I/O-lists.
+
+The string is converted to a sequence of bytes (using UTF-8 encoding)
+and written to standard output.
+--
+
+
+=== Control flow
+These instructions use the label part _label_ of the current line for determining
+a branch destination.
+
+Forward branch:: Go to the next line labelled with _label_.
+Backward branch:: Go to the last line labelled with _label_.
+Conditional forward branch:: `(... c) -> ()`
++
+--
+If `c>0`, go to the next line labelled with _label_.
+--
+Conditional backward branch::  `(... c) -> ()`
++
+--
+If `c>0`, go to the last line labelled with _label_.
+--
+
+Procedure call:: `(... arg) -> (... retaddr arg)`
++
+--
+Control is transfered to the (unique) line labelled with _label_.
+_retaddr_ is the return address: an instruction pointer pointing to the beginning of the following line.
+--
+
+Return:: `(... retaddr value) -> (... value)`
++
+--
+_retaddr_ must be a return address. +
+Control is transfered to _retaddr_.
+--
+
+=== Array operations
+Construct array:: `(... marker data1 ... dataN) -> (... array)`
++
+--
+Pop until a marker is encountered, then construct an new array
+containing the popped items `data1, ..., dataN` and push a reference
+to the array.
+--
+Array read:: `(... array index) -> (... value)`
++
+--
+_array_ must be an array. +
+_index_ must be an integer, and must in `[0; size(array)[`. +
+_value_ is `array[index]`.
+--
+Array write:: `(... array index value) -> (...)`
++
+--
+_array_ must be an array. +
+_index_ must be an integer, and must in `[0; size(array)[`. +
+`array[index]` is set to _value_.
+--
+Get array size:: `(... array) -> (... size)`
+    where _size_ is the number of elements in _array_, which must be an array.
+Set array size:: `(... array size) -> (...)`
++
+--
+_array_ must be an array. +
+_size_ must be an integer, and must be non-negative.
+
+If `size <= size(array)`, then _array_ is truncated to _size_ elements. +
+If `size > size(array)`, then _array_ is extended with zeroes until it has size _size_.
+--
+
+Array range copy:: `(... src soff dest doff count) -> (...)`
++
+--
+_src_ and _dest_ must be arrays. +
+_soff_ and _doff_ and _count_ must be non-negative integers. +
+_soff_ must be in `[0; size(src)-count[`. +
+_doff_ must be in `[0; size(dest)-count[`. +
+
+Set, for each _i_ in `[0; count[`, `dest[doff+i] := src[soff+i]` (the order is undefined).
+--
+
+=== Context access:
+
+Push local context:: `(...) -> (... lctx)`
++
+--
+Push the content of the local context register.
+--
+Push global context:: `(...) -> (... gctx)`
++
+--
+Push the content of the global context register.
+--
+Enter scope:: `(... lctx) -> (...)`
++
+--
+Push the content of the local context register onto the local context stack;
+set the local context register to _lctx_.
+--
+Exit scope:: `(...) -> (...)`
++
+--
+Pop the top of the local context stack and store that value into the local context register.
+--
+
+=== Debug dump
+Debug dump:: `(...) -> (...)`
++
+--
+Print a description of the current state, including the program point
+and the stack, to standard error.
+--
