@@ -8,11 +8,42 @@ class Token:
         return (isinstance(other, self.__class__)
             and self.__dict__ == other.__dict__)
     def __repr__(self):
-        return "%s(%s)" % (self.__class__, self.__dict__)
+        clsName = "%s" % (self.__class__,)
+        clsName = clsName.split(".")[-1]
+        clsName = clsName[0:1]
+        return "%s(%s)" % (clsName, self.args)
 
 class LabelToken(Token):
     def __init__(self, label):
         self.label = label
+        self.args = [label]
+
+class DoublingToken(Token):
+    def __init__(self, c):
+        self.character = c
+        self.args = [c]
+
+class InsertionToken(Token):
+    def __init__(self, c):
+        self.character = c
+        self.args = [c]
+
+class DeletionToken(Token):
+    def __init__(self, c):
+        self.character = c
+        self.args = [c]
+
+class ReplacementToken(Token):
+    def __init__(self, org, repl):
+        self.original = org
+        self.replacement = repl
+        self.args = [org,repl]
+
+class TranspositionToken(Token):
+    def __init__(self, org1, org2):
+        self.original1 = org1
+        self.original2 = org2
+        self.args = [org1,org2]
 
 #==== Lexer entry point: ==============================================
 def tokenize(src):
@@ -23,10 +54,12 @@ def tokenize(src):
         line = normalizeLine(src)
         if line=="": continue
 
-        for i in range(0, len(line)):
+        i = 0
+        while i<len(line):
             c = line[i]
             c2 = line[i+1] if i<len(line)-1 else ' '
-            handleCharacter(c, c2, state, lineNo)
+            delta_i = handleCharacter(c, c2, state, lineNo)
+            i += delta_i
     return state.tokens
 
 #==== Source pre-processing (normalization): ==========================
@@ -45,24 +78,53 @@ def handleCharacter(c, c2, state, lineNo):
         labelDone = lb.addCharacter(c, refChar)
         if labelDone:
             state.addToken(LabelToken(lb.closeAndGetLabel()))
+            return 0
         else:
             state.advanceReference()
+            return 1
 
     if labelDone:
         # Identify text mutations:
-        identifyMutation(state, c, c2)
+        delta_i = identifyMutation(state, c, c2)
+        return delta_i
 
 def identifyMutation(state, c, c2):
+    c = c.lower()
+    c2 = c2.lower()
     refChar = state.referenceChar()
-    # TODO:
-    #print("DEBUG identifyMutation: %s->%s ref=%s" % (c,c2,refChar))
-    # if c == refChar:
-    #     if c2 == refChar and c2 != state.nextReferenceChar():
-    #         # Doubled character.
-    #     else:
-    #         # No change.
-    adv = True
-    if adv: state.advanceReference()
+    #print("DEBUG identifyMutation: %s,%s ref=%s" % (c,c2,refChar))
+    if c == refChar:
+        if c2 == refChar and c2 != state.nextReferenceChar():
+            # Doubled character.
+            state.addToken(DoublingToken(c))
+            (adv_i, adv_j) = (2,1)
+        else:
+            # No change.
+            (adv_i, adv_j) = (1,1)
+    else:
+        nextRefChar = state.nextReferenceChar()
+        #print("DEBUG identifyMutation2: %s,%s ref=%s,%s" % (c,c2,refChar, nextRefChar))
+        if c == nextRefChar and c2 == refChar:
+            # Transposition.
+            state.addToken(TranspositionToken(refChar, nextRefChar))
+            (adv_i, adv_j) = (2,2)
+        elif c == nextRefChar:
+            # Deletion.
+            state.addToken(DeletionToken(refChar))
+            (adv_i, adv_j) = (0,1)
+        elif c2 == nextRefChar:
+            # Replacement.
+            state.addToken(ReplacementToken(refChar, c))
+            (adv_i, adv_j) = (1,1)
+        # TODO: end-of-line stuff.
+        elif c2 == refChar: # Or c non-letter, non-space
+            state.addToken(InsertionToken(c))
+            (adv_i, adv_j) = (1,0)
+        else:
+            raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,nextRefChar))
+        
+    state.advanceReference(adv_j)
+    return adv_i
 
 class LexerState:
     def __init__(self):
@@ -89,8 +151,8 @@ class LexerState:
     def nextReferenceChar(self):
         return REFERENCE_TEXT[self.refPos+1]
 
-    def advanceReference(self):
-        self.refPos += 1
+    def advanceReference(self, delta=1):
+        self.refPos += delta
 
 class LabelBuilder:
     def __init__(self):
@@ -129,7 +191,8 @@ class LabelBuilder:
 
     def trimToLastIncludedWord(self): # private
         if self.shouldTrim():
-            self.buffer = self.buffer[0:self.nextLastSpacePos]
+            cutPos = max(0, self.nextLastSpacePos)
+            self.buffer = self.buffer[0:cutPos]
 
     def shouldTrim(self):
         return self.nextLastSpacePos >= self.lastUppercasePos
