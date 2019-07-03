@@ -10,7 +10,6 @@ class Token:
     def __repr__(self):
         clsName = "%s" % (self.__class__,)
         clsName = clsName.split(".")[-1]
-        clsName = clsName[0:1]
         return "%s(%s)" % (clsName, self.args)
 
 class LabelToken(Token):
@@ -74,29 +73,38 @@ def handleCharacter(c, c2, state, lineNo):
     lb = state.labelBuilder
     labelDone = lb.done
     refChar = state.referenceChar()
-    if not labelDone:
-        labelDone = lb.addCharacter(c, refChar)
-        if labelDone:
-            state.addToken(LabelToken(lb.closeAndGetLabel()))
-            return 0
-        else:
-            state.advanceReference()
-            return 1
 
-    if labelDone:
-        # Identify text mutations:
-        delta_i = identifyMutation(state, c, c2)
-        return delta_i
+    # Identify text mutations:
+    (mutToken, delta_i) = identifyMutation(state, c, c2)
+
+    if not labelDone:
+        if len(state.tokens) > 0 or mutToken != None:
+            # Mutation found - time to close label.
+            lb.finalizeLabel()
+            state.addToken(LabelToken(lb.closeAndGetLabel()))
+        else:
+            labelDone = lb.addCharacter(c, refChar)
+            if labelDone:
+                state.addToken(LabelToken(lb.closeAndGetLabel()))
+                #return 0
+            #else:
+                #state.advanceReference()
+                #return 1
+
+    if mutToken != None:
+        state.addToken(mutToken)
+    return delta_i
 
 def identifyMutation(state, c, c2):
     c = c.lower()
     c2 = c2.lower()
     refChar = state.referenceChar()
+    token = None
     #print("DEBUG identifyMutation: %s,%s ref=%s" % (c,c2,refChar))
     if c == refChar:
         if c2 == refChar and c2 != state.nextReferenceChar():
             # Doubled character.
-            state.addToken(DoublingToken(c))
+            token = DoublingToken(c)
             (adv_i, adv_j) = (2,1)
         else:
             # No change.
@@ -106,25 +114,25 @@ def identifyMutation(state, c, c2):
         #print("DEBUG identifyMutation2: %s,%s ref=%s,%s" % (c,c2,refChar, nextRefChar))
         if c == nextRefChar and c2 == refChar:
             # Transposition.
-            state.addToken(TranspositionToken(refChar, nextRefChar))
+            token = TranspositionToken(refChar, nextRefChar)
             (adv_i, adv_j) = (2,2)
         elif c == nextRefChar:
             # Deletion.
-            state.addToken(DeletionToken(refChar))
+            token = DeletionToken(refChar)
             (adv_i, adv_j) = (0,1)
         elif c2 == nextRefChar:
             # Replacement.
-            state.addToken(ReplacementToken(refChar, c))
+            token = ReplacementToken(refChar, c)
             (adv_i, adv_j) = (1,1)
         # TODO: end-of-line stuff.
         elif c2 == refChar: # Or c non-letter, non-space
-            state.addToken(InsertionToken(c))
+            token = InsertionToken(c)
             (adv_i, adv_j) = (1,0)
         else:
             raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,nextRefChar))
         
     state.advanceReference(adv_j)
-    return adv_i
+    return (token, adv_i)
 
 class LexerState:
     def __init__(self):

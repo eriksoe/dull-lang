@@ -38,3 +38,23 @@ def test_label_none4():
 def test_label_none5():
     # Insertion in middle of word:
     assert tokens("al,L work and no play makes Jack a dull boy\n") == [LabelToken(""), InsertionToken(",")]
+
+def test_doubling():
+    assert tokens("all work and no pllay makes Jack a dull boy\n") == [LabelToken(""), DoublingToken("l")]
+def test_transposition():
+    assert tokens("all work and no paly makes Jack a dull boy\n") == [LabelToken(""), TranspositionToken("l","a")]
+def test_replacement():
+    assert tokens("all work and no pway makes Jack a dull boy\n") == [LabelToken(""), ReplacementToken("l","w")]
+def test_deletion():
+    assert tokens("all work and no ply makes Jack a dull boy\n") == [LabelToken(""), DeletionToken("a")]
+def test_insertion():
+    assert tokens("all work and no polay makes Jack a dull boy\n") == [LabelToken(""), InsertionToken("o")]
+
+def test_all_mutations_in_one_line():
+    assert tokens("aallw ork amdno plkay makes Jack a dull boy\n") == [
+        LabelToken(""),
+        DoublingToken("a"),
+        TranspositionToken(" ","w"),
+        ReplacementToken("n","m"),
+        DeletionToken(" "),
+        InsertionToken("k")]
