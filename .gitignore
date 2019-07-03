@@ -1,2 +1,7 @@
 *~
 *.html
+!.gitignore
+.*
+
+# Python stuff:
+*.pyc
