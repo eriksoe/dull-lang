@@ -48,24 +48,26 @@ class TranspositionToken(Token):
         self.args = [org1,org2]
 
 #==== Lexer entry point: ==============================================
+def normalizeChar(c):
+    if c=='\n': return ' '
+    return c
+
 def tokenize(src):
     state = LexerState()
     lineNo = 0
     for line in src.splitlines(True):
         lineNo += 1
-        line = normalizeLine(src)
+        line = normalizeLine(line)
         if line=="": continue
 
         i = 0
         while i<len(line):
-            c = line[i]
-            c2 = line[i+1] if i<len(line)-1 else ' '
-            c3 = line[i+2] if i<len(line)-2 else ' '
+            c  = normalizeChar(line[i])
+            c2 = normalizeChar(line[i+1]) if i<len(line)-1 else ' '
+            c3 = normalizeChar(line[i+2]) if i<len(line)-2 else ' '
             delta_i = handleCharacter(c, c2, c3, state, lineNo)
             i += delta_i
-            
-    # Handle end-of-file deletion, if any:
-    if state.refPos != 0 and state.refPos != len(REFERENCE_TEXT):
+        # Process end-of-line:
         handleCharacter(" ", " ", " ", state, lineNo)
 
     return state.tokens

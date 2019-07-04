@@ -18,6 +18,15 @@ def test_reference_text():
 def test_reference_text_with_padding():
     assert tokens(" \tAll work and no play makes Jack a dull boy\t \n") == [LabelToken("All")]
 
+def test_reference_text_split_on_several_lines():
+    # Plain split:
+    assert tokens("All work and no play\nmakes Jack a dull boy") == [LabelToken("All")]
+    # With whitespace padding:
+    assert tokens("All work and no play \n makes Jack a dull boy") == [LabelToken("All")]
+    # More than two lines:
+    assert tokens("All work\nand no play\nmakes Jack\na dull boy") == [LabelToken("All")]
+
+
 def test_label_none():
     # No mutation, no uppercased words:
     assert tokens("all work and no play makes Jack a dull boy\n") == [LabelToken("")]
