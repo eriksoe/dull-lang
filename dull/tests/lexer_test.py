@@ -33,7 +33,6 @@ def test_label_none3():
 def test_label_none4():
    # Deletion:
    assert tokens("LL work and no play makes Jack a dull boy\n") == [LabelToken(""), DeletionToken("a")]
-# OBS This is interpreted as Replace+Delete.
 
 def test_label_none5():
     # Insertion in middle of word:
@@ -58,3 +57,21 @@ def test_all_mutations_in_one_line():
         ReplacementToken("n","m"),
         DeletionToken(" "),
         InsertionToken("k")]
+
+def test_all_deletion_locations():
+    ref = dull.lexer.REFERENCE_TEXT
+    for i in range(len(ref)):
+        s = ref[:i] + ref[i+1:]
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            DeletionToken(ref[i])]
+
+def test_all_insertion_locations():
+    ref = dull.lexer.REFERENCE_TEXT
+    for i in range(len(ref)+1):
+        s = ref[:i] + "x" + ref[i:]
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            InsertionToken("x")]

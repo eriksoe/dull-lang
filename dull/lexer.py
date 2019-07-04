@@ -102,7 +102,7 @@ def identifyMutation(state, c, c2):
     token = None
     #print("DEBUG identifyMutation: %s,%s ref=%s" % (c,c2,refChar))
     if c == refChar:
-        if c2 == refChar and c2 != state.nextReferenceChar():
+        if c2 == refChar and c2 != state.referenceChar(1):
             # Doubled character.
             token = DoublingToken(c)
             (adv_i, adv_j) = (2,1)
@@ -110,7 +110,7 @@ def identifyMutation(state, c, c2):
             # No change.
             (adv_i, adv_j) = (1,1)
     else:
-        nextRefChar = state.nextReferenceChar()
+        nextRefChar = state.referenceChar(1)
         #print("DEBUG identifyMutation2: %s,%s ref=%s,%s" % (c,c2,refChar, nextRefChar))
         if c == nextRefChar and c2 == refChar:
             # Transposition.
@@ -120,14 +120,14 @@ def identifyMutation(state, c, c2):
             # Deletion.
             token = DeletionToken(refChar)
             (adv_i, adv_j) = (0,1)
+        elif c2 == refChar: # Or c non-letter, non-space
+            token = InsertionToken(c)
+            (adv_i, adv_j) = (1,0)
         elif c2 == nextRefChar:
             # Replacement.
             token = ReplacementToken(refChar, c)
             (adv_i, adv_j) = (1,1)
         # TODO: end-of-line stuff.
-        elif c2 == refChar: # Or c non-letter, non-space
-            token = InsertionToken(c)
-            (adv_i, adv_j) = (1,0)
         else:
             raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,nextRefChar))
         
@@ -154,10 +154,9 @@ class LexerState:
     def addToken(self, token):
         self.tokens.append(token)
 
-    def referenceChar(self):
-        return REFERENCE_TEXT[self.refPos]
-    def nextReferenceChar(self):
-        return REFERENCE_TEXT[self.refPos+1]
+    def referenceChar(self, delta=0):
+        pos = self.refPos + delta
+        return REFERENCE_TEXT[pos] if pos < len(REFERENCE_TEXT) else " "
 
     def advanceReference(self, delta=1):
         self.refPos += delta

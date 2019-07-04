@@ -114,12 +114,12 @@ decoding algorithm is as follows:
 ** Then _Transposed character_ (and `i+=2; j+=2`).
 * Else: Is `prg[i]==ref[j+1]`?
 ** Then _Deleted character_ (and `j+=1`).
-* Else: Is `prg[i+1]==ref[j+1]`?
-** Then _Replaced character_ (and `i+=1; j+=1`).
 * Else: Is `ref[j] = newline`?
 ** Then _Inserted character at end of line_ (and `i+=1`).
 * Else: Is `prg[i+1]==ref[j]`, or `prg[i] not a letter or space`?
 ** Then _Inserted character_ (and `i+=1`).
+* Else: Is `prg[i+1]==ref[j+1]`?
+** Then _Replaced character_ (and `i+=1; j+=1`).
 * Else: Syntax error.
 
 === Instructions
