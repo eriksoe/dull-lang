@@ -149,7 +149,7 @@ def identifyMutation(state, c, c2, c3):
                 # Pattern: AC ~ BC or ABX ~ BB
                 token = ReplacementToken(refChar, c)
                 (adv_i, adv_j) = (1,1)
-        elif c2 == refChar:
+        elif c2 == refChar or c == " ": # TODO: or c non-space, non-letter
             # Pattern: AB ~ B
             token = InsertionToken(c)
             (adv_i, adv_j) = (1,0)

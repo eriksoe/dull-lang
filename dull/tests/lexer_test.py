@@ -26,6 +26,9 @@ def test_reference_text_split_on_several_lines():
     # More than two lines:
     assert tokens("All work\nand no play\nmakes Jack\na dull boy") == [LabelToken("All")]
 
+def test_newline_within_word_means_inserted_space():
+    # Split in the middle of a work means an inserted space:
+    assert tokens("All work and no pl\nay makes Jack a dull boy") == [LabelToken("All"), InsertionToken(" ")]
 
 def test_label_none():
     # No mutation, no uppercased words:
