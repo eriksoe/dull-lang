@@ -7,10 +7,13 @@ class Token:
     def __eq__(self, other):
         return (isinstance(other, self.__class__)
             and self.__dict__ == other.__dict__)
+    def __ne__(self, other): return not self.__eq__(other)
     def __repr__(self):
         clsName = "%s" % (self.__class__,)
         clsName = clsName.split(".")[-1]
         return "%s(%s)" % (clsName, self.args)
+    def __hash__(self):
+        return hash(self.__repr__)
 
 class LabelToken(Token):
     def __init__(self, label):
