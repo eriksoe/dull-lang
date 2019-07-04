@@ -75,3 +75,12 @@ def test_all_insertion_locations():
         assert tokens(s) == [
             LabelToken(""),
             InsertionToken("x")]
+
+def test_all_replacement_locations():
+    ref = dull.lexer.REFERENCE_TEXT
+    for i in range(len(ref)):
+        s = ref[:i] + "x" + ref[i+1:]
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            ReplacementToken(ref[i], "x")]
