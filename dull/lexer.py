@@ -113,8 +113,8 @@ def identifyMutation(state, c, c2, c3):
     if c == refChar:
         # Pattern: A ~ A
         refChar2 = state.referenceChar(1)
-        if c2 == refChar and c2 != refChar2 and (refChar2 == c3 or c2 != state.referenceChar(2)):
-            # Pattern: (AA ~ AB but not AA ~ ABA) or AAB ~ AB
+        if c2 == refChar and c2 != refChar2 and (refChar2 == c3 and c2 != state.referenceChar(2)):
+            # Pattern: AA ~ AB but not AA ~ ABA or AAB ~ AB
             # Doubled character.
             token = DoublingToken(c)
             (adv_i, adv_j) = (2,1)
@@ -127,7 +127,8 @@ def identifyMutation(state, c, c2, c3):
         #print("DEBUG identifyMutation2: %s,%s ref=%s,%s" % (c,c2,refChar, refChar2))
         if c == refChar2:
             # Pattern: A ~ BA
-            if c2 == refChar and c2 != state.referenceChar(2):
+            refChar3 = state.referenceChar(2)
+            if c2 == refChar and (c2 != refChar3 or c3 == refChar3):
                 # Pattern: AB ~ BA
                 # Transposition.
                 token = TranspositionToken(refChar, refChar2)
@@ -154,6 +155,7 @@ def identifyMutation(state, c, c2, c3):
         else:
             raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,refChar2))
     state.advanceReference(adv_j)
+    #print("DEBUG: token=%s at '%s%s' (ref: '%s%s')" % (token, c,c2,refChar,refChar2))
     return (token, adv_i)
 
 class LexerState:

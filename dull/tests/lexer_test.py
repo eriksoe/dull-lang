@@ -84,3 +84,15 @@ def test_all_replacement_locations():
         assert tokens(s) == [
             LabelToken(""),
             ReplacementToken(ref[i], "x")]
+
+def test_all_transposition_locations():
+    ref = dull.lexer.REFERENCE_TEXT
+    for i in range(len(ref)-1):
+        (a,b) = (ref[i], ref[i+1])
+        if a==b: continue
+
+        s = ref[:i] + b + a + ref[i+2:]
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            TranspositionToken(a, b)]
