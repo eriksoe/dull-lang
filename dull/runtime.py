@@ -5,7 +5,7 @@ def i_dup(state,arg): pass
 def i_pop(state,arg): pass
 def i_swap(state,arg): pass
 def i_pushInteger(state,arg): pass
-def i_swap(state,arg): pass
+def i_pushMarker(state,arg): pass
 
 #====================  Arithmetic
 def i_add(state,arg): pass
