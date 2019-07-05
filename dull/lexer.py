@@ -156,7 +156,7 @@ def identifyMutation(state, c, c2, c3):
                 # Pattern: AC ~ BC or ABX ~ BB
                 token = ReplacementToken(refChar, c)
                 (adv_i, adv_j) = (1,1)
-        elif c2 == refChar or " .,:;!?'".index(c)>=0:
+        elif c2 == refChar or " .,:;!?'".find(c)>=0:
             # Pattern: AB ~ B
             token = InsertionToken(c, state.isAtEnd())
             (adv_i, adv_j) = (1,0)
@@ -174,7 +174,7 @@ class LexerState:
         self.labelBuilder = LabelBuilder()  # The line label
         
     def currentLine(self):
-        endPos = self.src.indexOf("\n", self.lineStart)
+        endPos = self.src.find("\n", self.lineStart)
         if endPos<0: endPos = len(self.src)
         return self.src[self.lineStart:endPos]
 
