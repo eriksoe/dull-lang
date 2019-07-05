@@ -23,29 +23,38 @@ def tokensToCode(tokens):
     return code
 
 def generateInstructions(tokens, code, labelMap):
-    curLabel = None
+    state = State(code, labelMap)
+    visitor = Visitor(state)
     for t in tokens:
-        print("DEBUG generateInstructions: token=%s/%s/%s" % (t,type(t), t.__class__))
-        tokenClass = t.__class__
-        if tokenClass == LabelToken:
-            print("DEBUG a label: %s" % (t,))
-            label = t.label
-            curLabel = label
-            if label != "": registerLabel(label, labelMap, code)
-        elif tokenClass == InsertionToken:
-            print("DEBUG an insertion: %s" % (t,))
-            c = t.character.lower()
-            if c>='a' and c<='z':
-                code.append((i_pushInteger, ord(c)-ord('a')+1))
-            else:
-                raise Error("Unexpected insertion: '%s' is not recognized" % (c,))
+        t.visitWith(visitor)
 
-def registerLabel(label, labelMap, code):
-    addrs = labelMap.get(label)
-    if addrs == None:
-        addrs = []
-        labelMap[label] = addrs
-    addrs.append(len(code))
+class State:
+    def __init__(self, code, labelMap):
+        self.code = code
+        self.labelMap = labelMap
+        self.curLabel = None
+
+    def registerLabel(self, label):
+        addrs = self.labelMap.get(label)
+        if addrs == None:
+            addrs = []
+            self.labelMap[label] = addrs
+        addrs.append(len(self.code))
+
+class Visitor:
+    def __init__(self, state):
+        self.state = state
+
+    def handleLabel(self, label):
+        self.state.curLabel = label
+        if label != "": self.state.registerLabel(label)
+
+    def handleInsertion(self, c, atEnd):
+        c = c.lower()
+        if c>='a' and c<='z':
+            self.state.code.append((i_pushInteger, ord(c)-ord('a')+1))
+        else:
+            raise Error("Unexpected insertion: '%s' is not recognized" % (c,))
 
 def resolveLabels(code, labelMap):
     pass

@@ -19,34 +19,40 @@ class LabelToken(Token):
     def __init__(self, label):
         self.label = label
         self.args = [label]
+    def visitWith(self, visitor): visitor.handleLabel(self.label)
 
 class DoublingToken(Token):
     def __init__(self, c):
         self.character = c
         self.args = [c]
+    def visitWith(self, visitor): visitor.handleDoubling(self.character)
 
 class InsertionToken(Token):
     def __init__(self, c, atEnd = False):
         self.character = c
         self.atEnd = atEnd
         self.args = [c, atEnd]
+    def visitWith(self, visitor): visitor.handleInsertion(self.character, self.atEnd)
 
 class DeletionToken(Token):
     def __init__(self, c):
         self.character = c
         self.args = [c]
+    def visitWith(self, visitor): visitor.handleDeletion(self.character)
 
 class ReplacementToken(Token):
     def __init__(self, org, repl):
         self.original = org
         self.replacement = repl
         self.args = [org,repl]
+    def visitWith(self, visitor): visitor.handleReplacement(self)
 
 class TranspositionToken(Token):
     def __init__(self, org1, org2):
         self.original1 = org1
         self.original2 = org2
         self.args = [org1,org2]
+    def visitWith(self, visitor): visitor.handleTransposition(self)
 
 #==== Lexer entry point: ==============================================
 def normalizeChar(c):
