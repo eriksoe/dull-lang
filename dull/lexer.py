@@ -45,14 +45,14 @@ class ReplacementToken(Token):
         self.original = org
         self.replacement = repl
         self.args = [org,repl]
-    def visitWith(self, visitor): visitor.handleReplacement(self)
+    def visitWith(self, visitor): visitor.handleReplacement(self.org, self.replacement)
 
 class TranspositionToken(Token):
     def __init__(self, org1, org2):
         self.original1 = org1
         self.original2 = org2
         self.args = [org1,org2]
-    def visitWith(self, visitor): visitor.handleTransposition(self)
+    def visitWith(self, visitor): visitor.handleTransposition(self.original1, self.original2)
 
 #==== Lexer entry point: ==============================================
 def normalizeChar(c):

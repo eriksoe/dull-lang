@@ -33,6 +33,8 @@ def generateInstructions(tokens, code, labelMap):
 
 def isa(c, charClass):
     return charClass.find(c)>=0
+def isLetter(c):
+    return c>="a" and c<="z"
 
 class State:
     def __init__(self, code, labelMap):
@@ -71,7 +73,7 @@ class Visitor:
             raise Error("Unexpected insertion: '%s' is not recognized" % (c,))
 
     def handleDeletion(self, c):
-        if c>="a" and c<="z":
+        if isLetter(c):
             if isa(c, VOWELS):
                 self.appendInstruction((i_swap, None))
             else:
@@ -82,10 +84,34 @@ class Visitor:
             raise Error("Unexpected deletion: '%s' is not recognized" % (c,))
        
     def handleDoubling(self, c):
-        if c>="a" and c<="z":
+        if isLetter(c):
             self.appendInstruction((i_dup, None))
         else:  
             raise Error("Unexpected deletion: '%s' is not recognized" % (c,))
+
+    def handleTransposition(self, a, b):
+        aLetter = isLetter(a)
+        bLetter = isLetter(b)
+        
+        if aLetter and bLetter:
+            aVowel = isa(a, VOWELS)
+            bVowel = isa(b, VOWELS)
+            if aVowel:
+                if bVowel:
+                    ins = i_div
+                else:
+                    ins = i_sub
+            else:
+                if bVowel:
+                    ins = i_add
+                else:
+                    ins = i_mul
+            self.appendInstruction((ins, None))
+        else:
+            # TODO: Handle context access.
+            raise Error("Unexpected transposition: '%s%s'->'%s%s' is not recognized" % (a,b,b,a))
+                
+
 
 def resolveLabels(code, labelMap):
     pass

@@ -35,6 +35,23 @@ def test_dup():
     s = "all work aand no play makes Jack a dull boy"
     assert tokensToCode(tokenize(s)) == [(i_dup,None)]
 
+#========== Arithmetic: ========================================
+def test_add():
+    s = "all work and no paly makes Jack a dull boy"
+    assert tokensToCode(tokenize(s)) == [(i_add, None)]
+
+def test_sub():
+    s = "all work and no play mkaes Jack a dull boy"
+    assert tokensToCode(tokenize(s)) == [(i_sub, None)]
+
+def test_mul():
+    s = "all work and no lpay makes Jack a dull boy"
+    assert tokensToCode(tokenize(s)) == [(i_mul, None)]
+
+def test_div():
+    s = "all work and no plya makes Jack a dull boy"
+    assert tokensToCode(tokenize(s)) == [(i_div, None)]
+
 #==================== Array operations: ==============================
 def test_create_array():
     s = "all workand no play makes Jack a dull boy"
