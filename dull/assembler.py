@@ -17,6 +17,7 @@ class SyntaxError(Exception):
     def __init__(self, msg): Error.__init__(self, msg)
 
 def tokensToCode(tokens):
+    #print("DEBUG tokensToCode: tokens=%s" % (tokens,))
     code = []
     labelMap = dict()
     # Pass 1: convert tokens to instructions
@@ -66,11 +67,23 @@ class Visitor:
         elif c == " ":
             self.appendInstruction((i_pushMarker, None))
         elif isa(c, PUNCTUATION):
-            pass # No operation; serves as part of the labelling mechanism.
+            if atEnd:
+                self.handlePunctuationEnd(c)
+            else:
+                pass # No operation; serves as part of the labelling mechanism.
         elif c == "'":
             self.appendInstruction((i_printDebugDump, None))
         else:
             raise Error("Unexpected insertion: '%s' is not recognized" % (c,))
+
+    def handlePunctuationEnd(self, c):
+        if c == "?":
+            ins = (i_input, None)
+        elif c == "!":
+            ins = (i_output, None)
+        else:
+            raise Error("Unexpected insertion: '%s' is not recognized" % (c,))
+        self.appendInstruction(ins)
 
     def handleDeletion(self, c):
         if isLetter(c):

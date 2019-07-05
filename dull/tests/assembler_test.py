@@ -52,6 +52,15 @@ def test_div():
     s = "all work and no plya makes Jack a dull boy"
     assert tokensToCode(tokenize(s)) == [(i_div, None)]
 
+#==================== I/O: ==============================
+def test_input():
+    s = "all work and no play makes Jack a dull boy?"
+    assert tokensToCode(tokenize(s)) == [(i_input, None)]
+
+def test_output():
+    s = "all work and no play makes Jack a dull boy!"
+    assert tokensToCode(tokenize(s)) == [(i_output, None)]
+
 #==================== Array operations: ==============================
 def test_create_array():
     s = "all workand no play makes Jack a dull boy"
