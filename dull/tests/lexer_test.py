@@ -31,7 +31,7 @@ def test_newline_within_word_means_inserted_space():
     assert tokens("All work and no pl\nay makes Jack a dull boy") == [LabelToken("All"), InsertionToken(" ")]
 
 def test_label_none():
-    # No mutation, no uppercased words:
+    # No mutation, no uppercased words (as prefix):
     assert tokens("all work and no play makes Jack a dull boy\n") == [LabelToken("")]
 
 def test_label_none2():
