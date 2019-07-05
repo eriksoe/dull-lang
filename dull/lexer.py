@@ -26,9 +26,10 @@ class DoublingToken(Token):
         self.args = [c]
 
 class InsertionToken(Token):
-    def __init__(self, c):
+    def __init__(self, c, atEnd = False):
         self.character = c
-        self.args = [c]
+        self.atEnd = atEnd
+        self.args = [c, atEnd]
 
 class DeletionToken(Token):
     def __init__(self, c):
@@ -143,15 +144,15 @@ def identifyMutation(state, c, c2, c3):
             # Pattern: AC ~ BC or AB ~ BB
             if c2 == refChar and c3 == refChar2:
                 # Pattern: ABB ~ BB
-                token = InsertionToken(c)
+                token = InsertionToken(c, state.isAtEnd())
                 (adv_i, adv_j) = (1,0)
             else:
                 # Pattern: AC ~ BC or ABX ~ BB
                 token = ReplacementToken(refChar, c)
                 (adv_i, adv_j) = (1,1)
-        elif c2 == refChar or c == " ": # TODO: or c non-space, non-letter
+        elif c2 == refChar or " .,:;!?'".index(c)>=0:
             # Pattern: AB ~ B
-            token = InsertionToken(c)
+            token = InsertionToken(c, state.isAtEnd())
             (adv_i, adv_j) = (1,0)
         # TODO: end-of-line stuff.
         else:
@@ -170,6 +171,9 @@ class LexerState:
         endPos = self.src.indexOf("\n", self.lineStart)
         if endPos<0: endPos = len(self.src)
         return self.src[self.lineStart:endPos]
+
+    def isAtEnd(self):
+        return self.refPos >= len(REFERENCE_TEXT)
 
     def resetLabel(self):
         self.labelBuilder = ""

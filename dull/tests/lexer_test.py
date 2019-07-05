@@ -1,5 +1,5 @@
 import dull.lexer
-from dull.lexer import *#LabelToken, InsertionToken, Deletiontoken
+from dull.lexer import *
 
 def tokens(s): return dull.lexer.tokenize(s)
 
@@ -50,6 +50,14 @@ def test_label_none5():
     # Insertion in middle of word:
     assert tokens("al,L work and no play makes Jack a dull boy\n") == [LabelToken(""), InsertionToken(",")]
 
+def test_label_midword():
+    # Insertion in middle of word:
+    assert tokens("aL,L work and no play makes Jack a dull boy\n") == [LabelToken("aL"), InsertionToken(",")]
+
+def test_label_midword2():
+    # Insertion in middle of word:
+    assert tokens("All Wor,k and no play makes Jack a dull boy\n") == [LabelToken("All Wor"), InsertionToken(",")]
+
 def test_doubling():
     assert tokens("all work and no pllay makes Jack a dull boy\n") == [LabelToken(""), DoublingToken("l")]
 def test_transposition():
@@ -86,7 +94,7 @@ def test_all_insertion_locations():
         print("Testing '%s'..." % s)
         assert tokens(s) == [
             LabelToken(""),
-            InsertionToken("x")]
+            InsertionToken("x", i==len(ref))]
 
 def test_all_replacement_locations():
     ref = dull.lexer.REFERENCE_TEXT
@@ -108,3 +116,29 @@ def test_all_transposition_locations():
         assert tokens(s) == [
             LabelToken(""),
             TranspositionToken(a, b)]
+
+def test_all_doubling_locations():
+    ref = dull.lexer.REFERENCE_TEXT
+    for i in range(len(ref)):
+        c = ref[i]
+        if i<len(ref)-2 and c==ref[i+2]:
+            # Confusable with transposition+insertion; needs 3 lookahead to distinguish.
+            continue
+
+        s = ref[:i] + c + ref[i:]
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            DoublingToken(c)]
+
+def test_end_punctuation():
+    ref = dull.lexer.REFERENCE_TEXT
+    for punct in [".", ",", ":", ";", "?", "!", "'"]:
+        s = ref + punct
+        print("Testing '%s'..." % s)
+        assert tokens(s) == [
+            LabelToken(""),
+            InsertionToken(punct, True)]
+    assert tokens(ref + "...") == [
+        LabelToken(""),
+        InsertionToken(".", True), InsertionToken(".", True), InsertionToken(".", True)]
