@@ -78,6 +78,16 @@ def test_all_mutations_in_one_line():
         DeletionToken(" "),
         InsertionToken("k")]
 
+def test_transposition_over_deletion():
+    assert tokens("all work and no play makes Jacka  dull boy\n") == [LabelToken(""), TranspositionToken(" ", "a")]
+def test_transposition_over_doubling():
+    assert tokens("all work and no play makes Jack  adull boy\n") == [LabelToken(""), TranspositionToken("a", " ")]
+
+def test_deletion_over_transposition():
+    assert tokens("all work and no play makes Jacka dull boy\n") == [LabelToken(""), DeletionToken(" ")]
+def test_deletion_over_doubling():
+    assert tokens("all work and no play makes Jack  dull boy\n") == [LabelToken(""), DeletionToken("a")]
+
 def test_all_deletion_locations():
     ref = dull.lexer.REFERENCE_TEXT
     for i in range(len(ref)):
