@@ -113,59 +113,74 @@ def handleCharacter(c, c2, c3, state, lineNo):
         state.addToken(mutToken)
     return delta_i
 
+def tryPattern(patternSpec, srcWindow, state, adv):
+    match = True
+    (pattern, advSrc, advRef) = patternSpec
+    for (srcIdx, refIdx) in pattern:
+        if srcWindow[srcIdx] != state.referenceChar(refIdx):
+            match = False
+            break
+    if match:
+        adv[0] = advSrc
+        adv[1] = advRef
+    return match
+
+NO_CHANGE_PATTERN = ([(0,0)], 1,1)
+DOUBLING_PATTERN = ([(0,-1),(1,0)], 1,0)
+DOUBLING_PATTERN_SYNCED = ([(0,-1),(1,0),(2,1)], 2,1)
+REPLACEMENT_PATTERN = ([(1,1)], 2,2)
+DELETION_PATTERN = ([(0,1)], 1,2)
+DELETION_PATTERN_SYNCED = ([(0,1),(1,2)], 2,3)
+INSERTION_PATTERN = ([(1,0)], 1,0)
+INSERTION_PATTERN_SYNCED = ([(1,0),(2,1)], 1,0)
+TRANSPOSITION_PATTERN = ([(0,1),(1,0)], 2,2)
+TRANSPOSITION_PATTERN_SYNCED = ([(0,1),(1,0),(2,2)], 3,3)
+
 def identifyMutation(state, c, c2, c3):
     c = c.lower()
     c2 = c2.lower()
+    c3 = c3.lower()
+    adv = [0,0]
+
+    srcWindow = [c,c2,c3]
+
     refChar = state.referenceChar()
-    token = None
-    #print("DEBUG identifyMutation: %s,%s ref=%s" % (c,c2,refChar))
-    if c == refChar:
-        # Pattern: A ~ A
-        refChar2 = state.referenceChar(1)
-        if c2 == refChar and c2 != refChar2 and (refChar2 == c3 and c2 != state.referenceChar(2)):
-            # Pattern: AA ~ AB but not AA ~ ABA or AAB ~ AB
-            # Doubled character.
-            token = DoublingToken(c)
-            (adv_i, adv_j) = (2,1)
-        else:
-            # No change.
-            (adv_i, adv_j) = (1,1)
+    if tryPattern(NO_CHANGE_PATTERN, srcWindow, state, adv):
+        token = None
+
+    elif tryPattern(TRANSPOSITION_PATTERN_SYNCED, srcWindow, state, adv):
+        token = TranspositionToken(refChar, state.referenceChar(1))
+    elif tryPattern(DELETION_PATTERN_SYNCED, srcWindow, state, adv):
+        token = DeletionToken(refChar)
+    elif tryPattern(DOUBLING_PATTERN_SYNCED, srcWindow, state, adv):
+        token = DoublingToken(c)
+    elif tryPattern(INSERTION_PATTERN_SYNCED, srcWindow, state, adv):
+        token = InsertionToken(c, state.isAtEnd())
+
+    elif tryPattern(REPLACEMENT_PATTERN, srcWindow, state, adv):
+        token = ReplacementToken(refChar, c)
+
+    elif tryPattern(TRANSPOSITION_PATTERN, srcWindow, state, adv):
+        token = TranspositionToken(refChar, state.referenceChar(1))
+    elif tryPattern(DELETION_PATTERN, srcWindow, state, adv):
+        token = DeletionToken(refChar)
+    elif tryPattern(DOUBLING_PATTERN, srcWindow, state, adv):
+        token = DoublingToken(c)
+    elif tryPattern(INSERTION_PATTERN, srcWindow, state, adv):
+        token = InsertionToken(c, state.isAtEnd())
+    elif " .,:;!?'".find(c)>=0:
+        # Insertion of punctuation
+        token = InsertionToken(c, state.isAtEnd())
+        adv = [1,0]
     else:
-        # Pattern: A ~ B
         refChar2 = state.referenceChar(1)
-        #print("DEBUG identifyMutation2: %s,%s ref=%s,%s" % (c,c2,refChar, refChar2))
-        if c == refChar2:
-            # Pattern: A ~ BA
-            refChar3 = state.referenceChar(2)
-            if c2 == refChar and (c2 != refChar3 or c3 == refChar3):
-                # Pattern: AB ~ BA
-                # Transposition.
-                token = TranspositionToken(refChar, refChar2)
-                (adv_i, adv_j) = (2,2)
-            else:
-                # Deletion.
-                token = DeletionToken(refChar)
-                (adv_i, adv_j) = (0,1)
-        elif c2 == refChar2:
-            # Pattern: AC ~ BC or AB ~ BB
-            if c2 == refChar and c3 == refChar2:
-                # Pattern: ABB ~ BB
-                token = InsertionToken(c, state.isAtEnd())
-                (adv_i, adv_j) = (1,0)
-            else:
-                # Pattern: AC ~ BC or ABX ~ BB
-                token = ReplacementToken(refChar, c)
-                (adv_i, adv_j) = (1,1)
-        elif c2 == refChar or " .,:;!?'".find(c)>=0:
-            # Pattern: AB ~ B
-            token = InsertionToken(c, state.isAtEnd())
-            (adv_i, adv_j) = (1,0)
-        # TODO: end-of-line stuff.
-        else:
-            raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,refChar2))
-    state.advanceReference(adv_j)
-    #print("DEBUG: token=%s at '%s%s' (ref: '%s%s')" % (token, c,c2,refChar,refChar2))
-    return (token, adv_i)
+        raise Exception("Syntax error at '%s%s' (ref: '%s%s')" % (c,c2,refChar,refChar2))
+    (advSrc, advRef) = adv
+    state.advanceReference(advRef)
+    # if token!=None:
+    #     refChar2 = state.referenceChar(1)
+    #     print("DEBUG: token=%s at '%s%s' (ref: '%s%s')" % (token, c,c2,refChar,refChar2))
+    return (token, advSrc)
 
 class LexerState:
     def __init__(self):
@@ -192,7 +207,7 @@ class LexerState:
 
     def referenceChar(self, delta=0):
         pos = self.refPos + delta
-        return REFERENCE_TEXT[pos] if pos < len(REFERENCE_TEXT) else " "
+        return REFERENCE_TEXT[pos] if pos>=0 and pos < len(REFERENCE_TEXT) else " "
 
     def advanceReference(self, delta=1):
         self.refPos += delta

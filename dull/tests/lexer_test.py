@@ -82,6 +82,8 @@ def test_transposition_over_deletion():
     assert tokens("all work and no play makes Jacka  dull boy\n") == [LabelToken(""), TranspositionToken(" ", "a")]
 def test_transposition_over_doubling():
     assert tokens("all work and no play makes Jack  adull boy\n") == [LabelToken(""), TranspositionToken("a", " ")]
+def test_transposition_over_insertion():
+    assert tokens("lal work and no play makes Jack a dull boy\n") == [LabelToken(""), TranspositionToken("a", "l")]
 
 def test_deletion_over_transposition():
     assert tokens("all work and no play makes Jacka dull boy\n") == [LabelToken(""), DeletionToken(" ")]
@@ -131,10 +133,6 @@ def test_all_doubling_locations():
     ref = dull.lexer.REFERENCE_TEXT
     for i in range(len(ref)):
         c = ref[i]
-        if i<len(ref)-2 and c==ref[i+2]:
-            # Confusable with transposition+insertion; needs 3 lookahead to distinguish.
-            continue
-
         s = ref[:i] + c + ref[i:]
         print("Testing '%s'..." % s)
         assert tokens(s) == [
